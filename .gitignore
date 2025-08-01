@@ -1,0 +1,52 @@
+# Created by Gemini
+
+# Archivos de log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Directorios de dependencias
+node_modules/
+jspm_packages/
+
+# Directorio de build de Maven
+target/
+
+# Archivos de volcado de memoria de Java
+*.hprof
+hs_err_pid*
+
+# Archivos del IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.DS_Store
+
+# Archivos de VS Code
+.vscode/
+
+# Archivos de NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+.nb-gradle/
+
+# Archivos de build y temporales
+.gradle
+build/
+/out/
+.swp
+*~
+.#*
+
+# Archivos del sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gymlog-db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=gymlog
+    volumes:
+      - gymlog_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - gymlog-network
+
+  api:
+    build: .
+    container_name: gymlog-api
+    depends_on:
+      - db
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_R2DBC_URL=r2dbc:postgresql://db:5432/gymlog
+      - SPRING_R2DBC_USERNAME=user
+      - SPRING_R2DBC_PASSWORD=password
+      - SPRING_LIQUIBASE_ENABLED=true
+    ports:
+      - "8080:8080"
+    networks:
+      - gymlog-network
+
+volumes:
+  gymlog_data:
+
+networks:
+  gymlog-network:
+    driver: bridge

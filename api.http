@@ -1,0 +1,103 @@
+# REST Client requests for the GymLog API
+#
+# Para ejecutar estas peticiones, necesitarás la extensión "REST Client" en VS Code.
+#
+# IMPORTANTE: AUTENTICACIÓN
+# Esta API está protegida. Para que las peticiones funcionen, primero necesitas obtener
+# un token de portador (Bearer Token) del flujo de autenticación OAuth2 de tu cliente.
+# Una vez lo tengas, descomenta y reemplaza el valor de la variable @authToken.
+#
+# @authToken = Bearer TU_TOKEN_DE_AUTENTICACION_AQUI
+
+### Variables Globales
+@baseUrl = http://localhost:8080/api/v1
+@contentType = application/json
+
+# ==================================================================
+# Ejercicios (Exercises)
+# ==================================================================
+
+### [GET] Buscar todos los ejercicios
+# Esta petición debería funcionar sin autenticación si la seguridad lo permite,
+# o devolver solo los ejercicios públicos.
+GET {{baseUrl}}/exercises
+# Authorization: {{authToken}}
+
+### [POST] Crear un nuevo ejercicio
+# @name newExerciseId
+POST {{baseUrl}}/exercises
+Content-Type: {{contentType}}
+# Authorization: {{authToken}}
+
+{
+  "name": "Sentadilla con Barra",
+  "description": "Ejercicio fundamental para el tren inferior.",
+  "targetMuscleGroup": "Piernas",
+  "isPublic": true,
+  "videoUrl": "https://www.youtube.com/watch?v=..."
+}
+
+### [PUT] Actualizar un ejercicio existente
+# Utiliza el ID del ejercicio creado en la petición anterior.
+PUT {{baseUrl}}/exercises/{{newExerciseId}}
+Content-Type: {{contentType}}
+# Authorization: {{authToken}}
+
+{
+  "name": "Sentadilla Profunda con Barra",
+  "isPublic": false
+}
+
+
+# ==================================================================
+# Rutinas (Routines)
+# ==================================================================
+
+### [GET] Obtener todas las rutinas del usuario
+GET {{baseUrl}}/routines
+# Authorization: {{authToken}}
+
+### [POST] Crear una nueva rutina
+# @name newRoutineId
+POST {{baseUrl}}/routines
+Content-Type: {{contentType}}
+# Authorization: {{authToken}}
+
+{
+  "name": "Mi Rutina de 3 Días",
+  "isActive": true
+}
+
+### [DELETE] Eliminar la rutina creada
+DELETE {{baseUrl}}/routines/{{newRoutineId}}
+# Authorization: {{authToken}}
+
+
+# ==================================================================
+# Sesiones de Entrenamiento (Workout Sessions)
+# ==================================================================
+
+### [POST] Iniciar una nueva sesión de entrenamiento
+# @name newSessionId
+POST {{baseUrl}}/workout-sessions
+Content-Type: {{contentType}}
+# Authorization: {{authToken}}
+
+{
+  "routineDayId": null,
+  "notes": "Sesión de prueba sin rutina específica."
+}
+
+### [POST] Registrar el rendimiento de un ejercicio en la sesión
+# Necesitarás un `routineExerciseId` válido de tu base de datos para que funcione.
+POST {{baseUrl}}/workout-sessions/{{newSessionId}}/logs
+Content-Type: {{contentType}}
+# Authorization: {{authToken}}
+
+{
+  "routineExerciseId": "00000000-0000-0000-0000-000000000001",
+  "setsCompleted": 3,
+  "repsAchieved": "10,9,8",
+  "weightKg": 50.5,
+  "notes": "Buena congestión."
+}

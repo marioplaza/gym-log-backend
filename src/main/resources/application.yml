@@ -1,0 +1,34 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: gymlog
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/gymlog
+    username: user
+    password: password
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus,loggers"
+      base-path: /management
+  endpoint:
+    health:
+      show-details: always
+
+# Configuración de seguridad personalizada y robusta
+gymlog:
+  security:
+    issuer-uris:
+      - https://accounts.google.com
+      - https://www.facebook.com
+      - https://appleid.apple.com

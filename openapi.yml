@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: GymLog API
+  description: API para la aplicación GymLog
+  version: 1.0.0
+tags:
+  - name: Exercises
+    description: Operaciones sobre el banco de ejercicios
+  - name: Routines
+    description: Gestión de las rutinas de los usuarios
+  - name: Workout Sessions
+    description: Registro de sesiones de entrenamiento
+
+paths:
+  /api/v1/exercises:
+    get:
+      tags:
+        - Exercises
+      summary: Buscar ejercicios
+      description: Busca ejercicios en el banco global, con filtros opcionales.
+      parameters:
+        - name: name
+          in: query
+          description: Filtrar por nombre del ejercicio
+          schema:
+            type: string
+        - name: targetMuscleGroup
+          in: query
+          description: Filtrar por grupo muscular
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de ejercicios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExerciseDTO'
+    post:
+      tags:
+        - Exercises
+      summary: Crear un nuevo ejercicio
+      description: Añade un nuevo ejercicio al banco, que puede ser público o privado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExerciseDTO'
+      responses:
+        '201':
+          description: Ejercicio creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseDTO'
+
+  /api/v1/exercises/{id}:
+    put:
+      tags:
+        - Exercises
+      summary: Actualizar un ejercicio
+      description: Actualiza un ejercicio existente que haya sido creado por el usuario.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExerciseDTO'
+      responses:
+        '200':
+          description: Ejercicio actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseDTO'
+
+  /api/v1/routines:
+    get:
+      tags:
+        - Routines
+      summary: Obtener todas las rutinas del usuario
+      responses:
+        '200':
+          description: Lista de rutinas del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoutineDTO'
+    post:
+      tags:
+        - Routines
+      summary: Crear una nueva rutina
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoutineDTO'
+      responses:
+        '201':
+          description: Rutina creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutineDTO'
+
+  /api/v1/routines/{id}:
+    get:
+      tags:
+        - Routines
+      summary: Obtener el detalle de una rutina
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detalle de la rutina
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutineDetailDTO'
+    put:
+      tags:
+        - Routines
+      summary: Actualizar una rutina
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoutineDTO'
+      responses:
+        '200':
+          description: Rutina actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoutineDTO'
+    delete:
+      tags:
+        - Routines
+      summary: Eliminar una rutina
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Rutina eliminada
+
+  /api/v1/workout-sessions:
+    post:
+      tags:
+        - Workout Sessions
+      summary: Iniciar una nueva sesión de entrenamiento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkoutSessionDTO'
+      responses:
+        '201':
+          description: Sesión de entrenamiento iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutSessionDTO'
+
+  /api/v1/workout-sessions/{sessionId}/logs:
+    post:
+      tags:
+        - Workout Sessions
+      summary: Registrar el rendimiento de un ejercicio
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExerciseLogDTO'
+      responses:
+        '201':
+          description: Registro de ejercicio creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExerciseLogDTO'
+
+components:
+  schemas:
+    ExerciseDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        targetMuscleGroup:
+          type: string
+        isPublic:
+          type: boolean
+
+    CreateExerciseDTO:
+      type: object
+      required:
+        - name
+        - targetMuscleGroup
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        targetMuscleGroup:
+          type: string
+        isPublic:
+          type: boolean
+          default: true
+
+    UpdateExerciseDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        videoUrl:
+          type: string
+        targetMuscleGroup:
+          type: string
+        isPublic:
+          type: boolean
+
+    RoutineDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    CreateRoutineDTO:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+          default: false
+
+    UpdateRoutineDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        isActive:
+          type: boolean
+
+    RoutineDetailDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isActive:
+          type: boolean
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutineDayDTO'
+
+    RoutineDayDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        orderNum:
+          type: integer
+        exercises:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutineExerciseDTO'
+
+    RoutineExerciseDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        exerciseId:
+          type: string
+          format: uuid
+        orderNum:
+          type: integer
+        isActive:
+          type: boolean
+        notes:
+          type: string
+
+    WorkoutSessionDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        routineDayId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        notes:
+          type: string
+
+    CreateWorkoutSessionDTO:
+      type: object
+      properties:
+        routineDayId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+
+    CreateExerciseLogDTO:
+      type: object
+      required:
+        - routineExerciseId
+        - setsCompleted
+        - repsAchieved
+        - weightKg
+      properties:
+        routineExerciseId:
+          type: string
+          format: uuid
+        setsCompleted:
+          type: integer
+        repsAchieved:
+          type: string
+        weightKg:
+          type: number
+        notes:
+          type: string
+
+    ExerciseLogDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        routineExerciseId:
+          type: string
+          format: uuid
+        setsCompleted:
+          type: integer
+        repsAchieved:
+          type: string
+        weightKg:
+          type: number
+        notes:
+          type: string
+        recordedAt:
+          type: string
+          format: date-time

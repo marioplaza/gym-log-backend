@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+
+    <!-- ================================================================== -->
+    <!-- PERFIL DE DESARROLLO (dev)                                         -->
+    <!-- ================================================================== -->
+    <springProfile name="dev">
+        <appender name="CONSOLE_TEXT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <!-- Formato de texto coloreado, mucho más legible para la consola -->
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} ${LOG_LEVEL_PATTERN:-%5p} ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_TEXT"/>
+        </root>
+    </springProfile>
+
+    <!-- ================================================================== -->
+    <!-- PERFIL DE PRODUCCIÓN (prod) O CUALQUIER OTRO                     -->
+    <!-- ================================================================== -->
+    <springProfile name="!dev">
+        <appender name="CONSOLE_JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <version/>
+                <springAppName/>
+                <loggerName/>
+                <threadName/>
+                <logLevel/>
+                <message/>
+                <stackTrace/>
+                <mdc>
+                    <includeMdcKeyName>correlationId</includeMdcKeyName>
+                </mdc>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_JSON"/>
+        </root>
+    </springProfile>
+
+</configuration>
