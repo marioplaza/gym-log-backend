@@ -59,6 +59,9 @@ public class AuthController implements AuthApi {
                 userDTO.id(UUID.fromString(jwt.getSubject()));
                 userDTO.email(jwt.getClaim("email"));
                 userDTO.name(jwt.getClaim("name"));
+                // Añadir tenantId al response (aunque no esté en UserDTO, se puede usar en headers)
+                String tenantId = jwt.getClaim("tenantId");
+                logger.debug("Usuario autenticado con tenantId: {}", tenantId);
                 // El resto de campos no se incluyen en el token por simplicidad
                 return ResponseEntity.ok(userDTO);
             });
@@ -87,12 +90,17 @@ public class AuthController implements AuthApi {
                         );
                     })
                     .flatMap(user -> {
-                        // Generar JWT propio de la aplicación
+                        // Generar JWT propio de la aplicación con tenantId
+                        // TODO: Implementar lógica para determinar el tenant del usuario
+                        // Por ahora usamos el tenant demo por defecto
+                        String tenantId = "00000000-0000-0000-0000-000000000001"; // Tenant demo
+                        
                         JwtClaimsSet claims = JwtClaimsSet.builder()
                             .issuer("gymlog")
                             .subject(user.id().toString())
                             .claim("email", user.email())
                             .claim("name", user.displayName())
+                            .claim("tenantId", tenantId) // Añadir tenantId al JWT
                             .issuedAt(Instant.now())
                             .expiresAt(Instant.now().plus(24, ChronoUnit.HOURS)) // 24 horas de expiración
                             .build();

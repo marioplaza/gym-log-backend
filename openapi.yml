@@ -6,6 +6,8 @@ info:
 tags:
   - name: Auth
     description: Autenticación y gestión de usuarios
+  - name: Tenants
+    description: Gestión de clientes/gimnasios (multi-tenant)
   - name: Exercises
     description: Operaciones sobre el banco de ejercicios
   - name: Routines
@@ -58,6 +60,90 @@ paths:
                 $ref: '#/components/schemas/UserDTO'
         '401':
           description: Token JWT inválido
+
+  # Endpoints de Gestión de Tenants
+  /api/v1/tenants:
+    post:
+      tags:
+        - Tenants
+      operationId: createTenant
+      summary: Crear nuevo cliente/gimnasio
+      description: Crea un nuevo tenant con su esquema de BD y ejecuta migraciones iniciales
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantDTO'
+      responses:
+        '201':
+          description: Tenant creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantDTO'
+        '400':
+          description: Datos de entrada inválidos
+        '401':
+          description: No autorizado
+        '403':
+          description: Sin permisos para crear tenants
+        '500':
+          description: Error del servidor
+    get:
+      tags:
+        - Tenants
+      operationId: getAllTenants
+      summary: Listar todos los clientes/gimnasios
+      description: Obtiene la lista de todos los tenants registrados (solo super admins)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de tenants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TenantDTO'
+        '401':
+          description: No autorizado
+        '403':
+          description: Sin permisos para listar tenants
+
+  /api/v1/tenants/{id}:
+    get:
+      tags:
+        - Tenants
+      operationId: getTenantById
+      summary: Obtener información de un tenant
+      description: Obtiene información detallada de un tenant específico
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID del tenant
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Información del tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantDTO'
+        '401':
+          description: No autorizado
+        '403':
+          description: Sin permisos para acceder a este tenant
+        '404':
+          description: Tenant no encontrado
 
   /api/v1/exercises:
     get:
@@ -538,3 +624,82 @@ components:
         recordedAt:
           type: string
           format: date-time
+
+    # Schemas para Multi-Tenancy
+    CreateTenantDTO:
+      type: object
+      required:
+        - name
+        - email
+        - plan
+      properties:
+        name:
+          type: string
+          description: Nombre del gimnasio/cliente
+          example: "Gimnasio Central"
+        email:
+          type: string
+          format: email
+          description: Email del administrador del gimnasio
+          example: "admin@gimnasiocentral.com"
+        plan:
+          type: string
+          enum: [basic, premium, enterprise]
+          description: Plan de suscripción del gimnasio
+          example: "premium"
+        description:
+          type: string
+          description: Descripción opcional del gimnasio
+          example: "Gimnasio especializado en fitness y musculación"
+        address:
+          type: string
+          description: Dirección física del gimnasio
+          example: "Calle Principal 123, Madrid"
+        phone:
+          type: string
+          description: Teléfono de contacto
+          example: "+34 91 123 45 67"
+
+    TenantDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único del tenant
+        name:
+          type: string
+          description: Nombre del gimnasio/cliente
+        email:
+          type: string
+          format: email
+          description: Email del administrador
+        plan:
+          type: string
+          enum: [basic, premium, enterprise]
+          description: Plan de suscripción
+        description:
+          type: string
+          description: Descripción del gimnasio
+        address:
+          type: string
+          description: Dirección física
+        phone:
+          type: string
+          description: Teléfono de contacto
+        schemaName:
+          type: string
+          description: Nombre del esquema de BD asignado
+          example: "gym_001"
+        isActive:
+          type: boolean
+          description: Si el tenant está activo
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última actualización

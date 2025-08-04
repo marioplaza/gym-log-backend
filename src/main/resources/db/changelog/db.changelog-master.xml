@@ -5,6 +5,12 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="db/changelog/0001-initial-schema.sql"/>
+    <!-- ORDEN IMPORTANTE: Primero public (tenants), luego tenant schemas -->
+    
+    <!-- 1. Esquema PUBLIC: Tabla de tenants y configuración global -->
+    <include file="db/changelog/0001-public-tenants-table.sql"/>
+    
+    <!-- 2. Esquemas TENANT: Tablas para cada gimnasio/cliente -->
+    <include file="db/changelog/0002-tenant-schema-initial.sql"/>
 
 </databaseChangeLog>

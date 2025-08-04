@@ -91,6 +91,11 @@
             <artifactId>java-jwt</artifactId>
             <version>4.4.0</version>
         </dependency>
+        <!-- Liquibase JDBC para TenantLiquibaseManager -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

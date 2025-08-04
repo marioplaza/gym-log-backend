@@ -25,7 +25,23 @@ Este documento sirve como guía para el desarrollo del proyecto utilizando la CL
     - Se incluirá la dependencia `springdoc-openapi` para servir una UI de Swagger interactiva basada en la especificación OpenAPI del proyecto.
 - **Migraciones de Base de Datos**: Se utilizará **Liquibase** para gestionar el versionado del esquema de la base de datos. Los cambios se definirán en ficheros de changelog (XML, YAML o SQL).
 
-### 1.4. Seguridad: Autenticación y Autorización
+### 1.4. Arquitectura Multi-Tenant por Esquema
+- **Concepto**: La aplicación soportará múltiples clientes (gimnasios) mediante una arquitectura multi-tenant basada en **esquemas de base de datos separados**.
+- **Estructura de Base de Datos**:
+    - **Esquema `public`**: Contiene únicamente la tabla de clientes/gimnasios (`tenants`) con información básica de cada cliente.
+    - **Esquemas de tenant**: Cada cliente tiene su propio esquema (ej: `gym_001`, `gym_002`) con todas las tablas de la aplicación (usuarios, rutinas, ejercicios, etc.).
+- **Gestión de Migraciones con Liquibase**:
+    - Se implementará un `TenantLiquibaseManager` que ejecuta las migraciones de forma iterativa sobre cada esquema de tenant.
+    - Las migraciones se ejecutan automáticamente al arrancar la aplicación.
+    - El esquema `public` se excluye de las migraciones automáticas (solo contiene la tabla de tenants).
+- **Resolución de Tenant**:
+    - Cada petición debe incluir el `tenantId` en el JWT para identificar el esquema correspondiente.
+    - Se implementará un `TenantResolver` que extrae el tenant del token y configura el contexto de base de datos.
+- **Creación de Nuevos Clientes**:
+    - Endpoint `/api/v1/tenants` para crear nuevos gimnasios.
+    - Al crear un cliente, se genera automáticamente su esquema y se ejecutan las migraciones iniciales.
+
+### 1.5. Seguridad: Autenticación y Autorización
 - **Autenticación**:
     - Se implementará un sistema de autenticación basado en proveedores sociales (Social Login).
     - Proveedores soportados: **Google, Apple, Facebook**.
@@ -33,18 +49,19 @@ Este documento sirve como guía para el desarrollo del proyecto utilizando la CL
         1. El cliente (frontend) realiza el login con el proveedor social y obtiene un token (e.g., JWT, access token).
         2. El cliente envía este token al endpoint `/api/v1/auth/social-login` del backend.
         3. El backend validará el token contra el proveedor correspondiente y, si es válido, creará o actualizará el usuario en la base de datos.
-        4. El backend generará su propio JWT con la información del usuario y lo devolverá al cliente.
+        4. El backend generará su propio JWT con la información del usuario **incluyendo el `tenantId`** y lo devolverá al cliente.
         5. Para las siguientes peticiones, el cliente usará el JWT de la aplicación (no el token social) en las cabeceras de autorización.
     - **No existirá un login tradicional con email/contraseña.**
 - **Autorización**:
-    - La aplicación manejará roles de usuario definidos en la base de datos.
+    - La aplicación manejará roles de usuario definidos en la base de datos de cada tenant.
     - Se utilizará Spring Security para proteger los endpoints según el rol del usuario autenticado.
+    - **Aislamiento por Tenant**: Cada petición solo puede acceder a los datos del esquema correspondiente al `tenantId` del JWT.
 
-### 1.5. Configuración y Despliegue
+### 1.6. Configuración y Despliegue
 - **Fichero de Configuración**: Se utilizará `application.yml` en lugar de `application.properties` y Spring Profiles para la gestión de entornos (dev, prod, etc.).
 - **Despliegue**: La aplicación será containerizada con **Docker** para asegurar un entorno de despliegue consistente.
 
-### 1.6. Calidad, Pruebas y Operación
+### 1.7. Calidad, Pruebas y Operación
 - **Documentación de Código**:
     - Todo el código público (clases, métodos, records) deberá estar documentado utilizando **Javadocs**.
     - Los comentarios deben explicar el "porqué" y no el "qué". Deben aclarar la intención, los contratos de los métodos (parámetros, retornos, excepciones) y cualquier comportamiento no obvio.
@@ -295,6 +312,47 @@ Con la lógica de negocio completa, nos centramos en la calidad, operación y de
 11. **Documentación y Calidad de Código:**
     *   Realizar una pasada completa por el código para añadir Javadocs a todas las clases, records y métodos públicos, explicando el "porqué" de la lógica compleja.
 
-12. **Containerización con Docker:**
+12. **Implementación Multi-Tenant:**
+    *   Implementar `TenantLiquibaseManager` para gestión de migraciones por esquema.
+    *   Crear tabla de tenants en esquema `public`.
+    *   Implementar `TenantResolver` para resolución automática de tenant por JWT.
+    *   Configurar DataSource dinámico por tenant.
+    *   Implementar endpoint `/api/v1/tenants` para creación de nuevos clientes/gimnasios.
+    *   Modificar JWT para incluir `tenantId` en todos los tokens.
+
+13. **Containerización con Docker:**
     *   Crear un `Dockerfile` para empaquetar la aplicación Spring Boot en una imagen de contenedor.
     *   Crear un `docker-compose.yml` que levante dos servicios: la aplicación y la base de datos PostgreSQL, conectándolos entre sí.
+
+---
+
+## 5. Flujos Multi-Tenant Detallados
+
+### 5.1. Flujo de Creación de Nuevo Cliente/Gimnasio
+
+1. **Petición**: `POST /api/v1/tenants` con datos del gimnasio
+2. **Validación**: Verificar que el usuario tiene permisos para crear tenants
+3. **Creación en BD**: 
+   - Insertar registro en tabla `tenants` (esquema `public`)
+   - Generar `schema_name` único (ej: `gym_001`)
+4. **Creación de Esquema**: Ejecutar `CREATE SCHEMA gym_001`
+5. **Migraciones Iniciales**: Ejecutar todos los changesets de Liquibase en el nuevo esquema
+6. **Respuesta**: Devolver información del tenant creado
+
+### 5.2. Flujo de Resolución de Tenant por Petición
+
+1. **Extracción del JWT**: Obtener token de la cabecera `Authorization`
+2. **Decodificación**: Extraer `tenantId` del claim del JWT
+3. **Resolución de Esquema**: Consultar tabla `tenants` para obtener `schema_name`
+4. **Configuración de Contexto**: Establecer esquema activo para la conexión R2DBC
+5. **Ejecución**: Procesar la petición en el contexto del tenant correspondiente
+
+### 5.3. Flujo de Migraciones Multi-Tenant
+
+1. **Arranque de Aplicación**: `TenantLiquibaseManager` se ejecuta automáticamente
+2. **Obtención de Tenants**: Consultar tabla `tenants` en esquema `public`
+3. **Iteración por Esquema**: Para cada tenant activo:
+   - Configurar Liquibase con `defaultSchema = tenant.schemaName`
+   - Ejecutar migraciones pendientes
+   - Registrar resultado en logs
+4. **Manejo de Errores**: Si falla una migración, continuar con el siguiente tenant pero registrar el error

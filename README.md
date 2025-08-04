@@ -1,13 +1,14 @@
 # GymLog API
 
-GymLog API es el backend para una aplicación de seguimiento de entrenamientos de gimnasio. Está construido con Java 21, Spring Boot 3 (WebFlux) y sigue un enfoque reactivo y moderno.
+GymLog API es el backend para una aplicación de seguimiento de entrenamientos de gimnasio. Está construido con Java 21, Spring Boot 3 (WebFlux) y sigue un enfoque reactivo y moderno con **arquitectura multi-tenant**.
 
 ## Características Principales
 
 - **Stack Moderno**: Java 21, Spring WebFlux, R2DBC.
 - **API-First**: La API se define y genera a partir de una especificación OpenAPI.
-- **Seguridad**: Autenticación híbrida con tokens sociales y JWT propio.
-- **Base de Datos**: PostgreSQL con migraciones gestionadas por Liquibase.
+- **Multi-Tenant**: Arquitectura por esquemas de BD que soporta múltiples clientes/gimnasios.
+- **Seguridad**: Autenticación híbrida con tokens sociales y JWT propio con contexto de tenant.
+- **Base de Datos**: PostgreSQL con migraciones gestionadas por Liquibase multi-tenant.
 - **Calidad de Código**: Lógica de negocio robusta, manejo de errores centralizado y logging estructurado por perfiles.
 - **Containerizado**: Listo para desplegar con Docker.
 
@@ -80,6 +81,45 @@ gymlog:
 - Para Facebook: Obtén app ID/secret desde Facebook Developers
 - Para Apple: Configura team ID y bundle ID desde Apple Developer
 
+### 2.4. Arquitectura Multi-Tenant por Esquemas
+
+La aplicación implementa una arquitectura **multi-tenant por esquemas** que permite servir múltiples clientes (gimnasios) desde una sola instancia:
+
+#### **Estructura de Base de Datos**
+
+- **Esquema `public`**: Contiene únicamente la tabla `tenants` con información de cada cliente/gimnasio
+- **Esquemas de tenant**: Cada cliente tiene su propio esquema (ej: `gym_001`, `gym_002`) con todas las tablas de la aplicación
+
+#### **Gestión de Migraciones**
+
+- **Automática**: Al arrancar la aplicación, `TenantLiquibaseManager` ejecuta migraciones en todos los esquemas de tenant
+- **Iterativa**: Las migraciones se aplican esquema por esquema, excluyendo el `public`
+- **Resiliente**: Si falla una migración en un esquema, continúa con los demás
+
+#### **Resolución de Tenant**
+
+- **JWT con Tenant**: Cada token incluye un `tenantId` que identifica el cliente
+- **Contexto Automático**: Cada petición se ejecuta automáticamente en el esquema correcto
+- **Aislamiento**: Los datos están completamente aislados entre clientes
+
+#### **Creación de Nuevos Clientes**
+
+```bash
+# Crear un nuevo gimnasio/cliente
+POST /api/v1/tenants
+{
+  "name": "Gimnasio Central",
+  "email": "admin@gimnasiocentral.com",
+  "plan": "premium"
+}
+```
+
+Al crear un cliente:
+1. Se genera un registro en la tabla `tenants` (esquema `public`)
+2. Se crea automáticamente su esquema dedicado (ej: `gym_003`)
+3. Se ejecutan todas las migraciones de Liquibase en el nuevo esquema
+4. El cliente queda listo para usar inmediatamente
+
 ---
 
 ## 3. Construcción y Ejecución
@@ -144,12 +184,24 @@ Una vez que la aplicación está en ejecución, puedes acceder a la documentaci�
 
 - **Login Social (Público)**: `POST /api/v1/auth/social-login`
   - Acepta tokens de Google, Apple o Facebook
-  - Devuelve un JWT de la aplicación y la información del usuario
+  - Devuelve un JWT de la aplicación (con `tenantId`) y la información del usuario
 - **Usuario Actual (Autenticado)**: `GET /api/v1/auth/me`
   - Requiere JWT en el header `Authorization: Bearer <token>`
   - Devuelve la información del usuario autenticado
 
-### 5.3. Endpoints de Actuator
+### 5.3. Endpoints de Gestión de Tenants
+
+- **Crear Cliente/Gimnasio**: `POST /api/v1/tenants`
+  - Crea un nuevo cliente con su propio esquema de BD
+  - Ejecuta automáticamente las migraciones de Liquibase
+  - Requiere permisos especiales (super admin)
+- **Listar Clientes**: `GET /api/v1/tenants`
+  - Lista todos los clientes/gimnasios registrados
+  - Solo accesible para super admins
+- **Obtener Cliente**: `GET /api/v1/tenants/{id}`
+  - Obtiene información de un cliente específico
+
+### 5.4. Endpoints de Actuator
 
 - **Health Check (Público)**: `GET /management/health`
 - **Endpoints de Admin (Requieren rol `ADMIN`)**:

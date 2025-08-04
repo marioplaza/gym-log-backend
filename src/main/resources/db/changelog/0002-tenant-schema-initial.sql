@@ -1,6 +1,7 @@
 -- liquibase formatted sql
 
--- changeset gemini:1
+-- changeset gymlog:0002-tenant-schema-initial context:tenant
+-- comment: Crear esquema inicial para cada tenant (usuarios, rutinas, ejercicios, etc.)
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     provider_id VARCHAR(255) NOT NULL,
