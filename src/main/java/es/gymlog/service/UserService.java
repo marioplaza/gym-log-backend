@@ -24,6 +24,10 @@ public class UserService {
         String email = authentication.getPrincipal().getAttribute("email");
         String displayName = authentication.getPrincipal().getAttribute("name");
 
+        return findOrCreateUserFromSocial(provider, providerId, email, displayName);
+    }
+
+    public Mono<User> findOrCreateUserFromSocial(String provider, String providerId, String email, String displayName) {
         return userRepository.findByProviderAndProviderId(provider, providerId)
             .switchIfEmpty(Mono.defer(() -> {
                 User newUser = new User(

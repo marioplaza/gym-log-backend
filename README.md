@@ -6,7 +6,7 @@ GymLog API es el backend para una aplicación de seguimiento de entrenamientos d
 
 - **Stack Moderno**: Java 21, Spring WebFlux, R2DBC.
 - **API-First**: La API se define y genera a partir de una especificación OpenAPI.
-- **Seguridad**: Autenticación delegada a proveedores sociales (OAuth2).
+- **Seguridad**: Autenticación híbrida con tokens sociales y JWT propio.
 - **Base de Datos**: PostgreSQL con migraciones gestionadas por Liquibase.
 - **Calidad de Código**: Lógica de negocio robusta, manejo de errores centralizado y logging estructurado por perfiles.
 - **Containerizado**: Listo para desplegar con Docker.
@@ -46,21 +46,39 @@ spring:
     password: password
 ```
 
-### 2.3. Configuración de Autenticación (OAuth2)
+### 2.3. Configuración de Autenticación JWT y Proveedores Sociales
 
-El proyecto utiliza OAuth2 para la autenticación. Debes proporcionar tus propias credenciales de cliente en `src/main/resources/application.yml`. Reemplaza los valores de `YOUR_..._ID`:
+El proyecto utiliza un sistema híbrido de autenticación con **validación real** de tokens sociales:
+
+1. **Login Social**: Los clientes se autentican con proveedores sociales (Google, Apple, Facebook) y envían el token al endpoint `/api/v1/auth/social-login`.
+2. **Validación Real**: El backend valida el token contra el proveedor correspondiente usando sus APIs oficiales.
+3. **JWT Propio**: Después de la validación exitosa, crea/actualiza el usuario y devuelve un JWT propio.
+4. **Autorización**: Las siguientes peticiones usan el JWT de la aplicación.
+
+La configuración se encuentra en `src/main/resources/application.yml`:
 
 ```yaml
-spring:
+gymlog:
   security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: YOUR_GOOGLE_CLIENT_ID
-            client-secret: YOUR_GOOGLE_CLIENT_SECRET
-          # Puedes añadir otros proveedores como Facebook o Apple aquí
+    jwt-key: "una-clave-secreta-muy-larga-y-segura-para-firmar-tokens-jwt-en-desarrollo"
+    social:
+      google:
+        client-ids:
+          - "tu-google-client-id.apps.googleusercontent.com"
+      facebook:
+        app-id: "tu-facebook-app-id"
+        app-secret: "tu-facebook-app-secret"
+      apple:
+        team-id: "tu-apple-team-id"
+        bundle-id: "com.tu-app.bundle-id"
 ```
+
+**⚠️ Importante**: 
+- En producción, usa claves más seguras y almacénalas como variables de entorno
+- Configura los client IDs/secrets reales de tus aplicaciones en cada proveedor
+- Para Google: Obtén el client ID desde Google Cloud Console
+- Para Facebook: Obtén app ID/secret desde Facebook Developers
+- Para Apple: Configura team ID y bundle ID desde Apple Developer
 
 ---
 
@@ -122,7 +140,16 @@ Una vez que la aplicación está en ejecución, puedes acceder a la documentaci�
 
 [**http://localhost:8080/swagger-ui.html**](http://localhost:8080/swagger-ui.html)
 
-### 5.2. Endpoints de Actuator
+### 5.2. Endpoints de Autenticación
+
+- **Login Social (Público)**: `POST /api/v1/auth/social-login`
+  - Acepta tokens de Google, Apple o Facebook
+  - Devuelve un JWT de la aplicación y la información del usuario
+- **Usuario Actual (Autenticado)**: `GET /api/v1/auth/me`
+  - Requiere JWT en el header `Authorization: Bearer <token>`
+  - Devuelve la información del usuario autenticado
+
+### 5.3. Endpoints de Actuator
 
 - **Health Check (Público)**: `GET /management/health`
 - **Endpoints de Admin (Requieren rol `ADMIN`)**:

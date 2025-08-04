@@ -31,8 +31,10 @@ Este documento sirve como guía para el desarrollo del proyecto utilizando la CL
     - Proveedores soportados: **Google, Apple, Facebook**.
     - El flujo será:
         1. El cliente (frontend) realiza el login con el proveedor social y obtiene un token (e.g., JWT, access token).
-        2. El cliente envía este token al backend en las cabeceras de las peticiones.
-        3. El backend validará el token contra el proveedor correspondiente para autenticar al usuario.
+        2. El cliente envía este token al endpoint `/api/v1/auth/social-login` del backend.
+        3. El backend validará el token contra el proveedor correspondiente y, si es válido, creará o actualizará el usuario en la base de datos.
+        4. El backend generará su propio JWT con la información del usuario y lo devolverá al cliente.
+        5. Para las siguientes peticiones, el cliente usará el JWT de la aplicación (no el token social) en las cabeceras de autorización.
     - **No existirá un login tradicional con email/contraseña.**
 - **Autorización**:
     - La aplicación manejará roles de usuario definidos en la base de datos.

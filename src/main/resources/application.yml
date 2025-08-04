@@ -28,7 +28,17 @@ management:
 # Configuración de seguridad personalizada y robusta
 gymlog:
   security:
-    issuer-uris:
-      - https://accounts.google.com
-      - https://www.facebook.com
-      - https://appleid.apple.com
+    jwt-key: "una-clave-secreta-muy-larga-y-segura-para-firmar-tokens-jwt-en-desarrollo"
+    social:
+      google:
+        # Lista de client IDs válidos para Google (configurar según tu app)
+        client-ids:
+          - "tu-google-client-id.apps.googleusercontent.com"
+      facebook:
+        # App ID y App Secret de Facebook (opcional para validación adicional)
+        app-id: "tu-facebook-app-id"
+        app-secret: "tu-facebook-app-secret"
+      apple:
+        # Team ID y Bundle ID de Apple (para validación completa en producción)
+        team-id: "tu-apple-team-id"
+        bundle-id: "com.tu-app.bundle-id"
